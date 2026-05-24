@@ -1,0 +1,68 @@
+name: Build Itadori PaddleOCR Test EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller
+          pip install pillow numpy pynput
+          pip install paddlepaddle paddleocr
+
+      - name: Mostrar versões
+        shell: pwsh
+        run: |
+          python --version
+          pip show paddleocr
+          pip show paddlepaddle
+          pip show pyinstaller
+
+      - name: Compilar EXE
+        shell: pwsh
+        run: |
+          pyinstaller --onefile --noconsole `
+            --name RainZoneItadori `
+            --collect-all paddleocr `
+            --collect-all paddle `
+            --collect-all cv2 `
+            --collect-all numpy `
+            --collect-all PIL `
+            --hidden-import paddle `
+            --hidden-import paddleocr `
+            --hidden-import cv2 `
+            --hidden-import numpy `
+            --hidden-import pynput.keyboard._win32 `
+            --hidden-import pynput.mouse._win32 `
+            --hidden-import PIL._tkinter_finder `
+            --hidden-import ctypes.wintypes `
+            rainzone_windows.py
+
+      - name: Organizar distribuição
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist\RainZoneItadori
+          Move-Item dist\RainZoneItadori.exe dist\RainZoneItadori\RainZoneItadori.exe -Force
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
+        with:
+          name: RainZoneItadori-Windows
+          path: dist/RainZoneItadori/
+          retention-days: 1
